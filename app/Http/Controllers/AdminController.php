@@ -22,6 +22,7 @@ class AdminController extends Controller
      */
 
 
+
     public function updateAdminConfig(Request $request)
     {
 
