@@ -27,7 +27,11 @@ Route::middleware(['auth:sanctum'])->group(function () {
     // Resolve P2P username
     Route::get('/transfer/username', [TransferController::class, "GetUsername"]);
 
-    Route::get('/transfer', [TransferController::class, "FetchPaginatedHistory"]);
+    // Resolve P2P username
+    Route::get('/transfer', [TransferController::class, "GetBankAccount"]);
+
+    // Fetch transaction (Paginated)
+    Route::get('/transaction', [TransferController::class, "FetchPaginatedHistory"]);
 
     // Transfer Username
     Route::post('/transfer/username', [TransferController::class, "TransferUsername"]);

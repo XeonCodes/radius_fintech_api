@@ -61,8 +61,6 @@ class TransferController extends Controller
             // Get the authenticated user
             $user = $request->user();
 
-            Log::info($user->token);
-
             // Check if user has transact ability
             if (!$user->tokenCan('transact')) {
                 return response()->json([
@@ -145,6 +143,103 @@ class TransferController extends Controller
         }
 
     }
+
+
+    // Get Bank Account
+    public function GetBankAccount(Request $request)
+    {
+        // Validate input
+        $validator = Validator::make($request->all(), [
+            'bank_code' => 'required|string|max:10|regex:/^[0-9]+$/',
+            'account_number' => 'required|string|digits:10|regex:/^[0-9]+$/',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 422,
+                'message' => $validator->errors()->first()
+            ], 422);
+        }
+
+        try {
+
+            // Get the authenticated user
+            $user = $request->user();
+
+            // Check if user has transact ability
+            if (!$user->tokenCan('transact')) {
+                return response()->json([
+                    'status' => 403,
+                    'message' => 'You cannot transfer at this time'
+                ], 403);
+            }
+
+            // Retrieve admin settings from cache
+            $admin = Cache::remember('admin_settings', 60, function () {
+                return AdminModel::find(1);
+            });
+
+            if (!$admin) {
+                return response()->json([
+                    'status' => 503,
+                    'message' => 'Services are temporarily disabled.'
+                ], 503);
+            }
+
+            // Check if all services are enabled
+            if ($admin->all_services_status != 1) {
+                return response()->json([
+                    'status' => 503,
+                    'message' => 'Services are temporarily disabled.'
+                ], 503);
+            }
+
+            // Check if transfer service is enabled
+            if ($admin->transfer_status != 1) {
+                return response()->json([
+                    'status' => 503,
+                    'message' => 'Transfers are temporarily disabled.'
+                ], 503);
+            }
+
+            // Resolve username
+            $targetUser = User::where("username", strtolower($request->username))->first();
+            if (!$targetUser) {
+                return response()->json([
+                    'status' => 404,
+                    'message' => 'Account could not be found.'
+                ], 404);
+            }
+
+            // Check if user status is 1
+            if ($targetUser->status != 1) {
+                return response()->json([
+                    'status' => 403,
+                    'message' => "Invalid receiver username"
+                ], 403);
+            }
+
+            // Return successful response
+            return response()->json([
+                "status" => 200,
+                "message" => "Username resolved successfully",
+                "data" => [
+                    "fullname" => $targetUser->first_name . " " . $targetUser->last_name
+                ]
+            ], 200);
+
+        } catch (Exception $th) {
+            // Log the exception
+            Log::error('Error resolving username', ['exception' => $th]);
+
+            // Return generic error response to avoid exposing sensitive information
+            return response()->json([
+                'status' => 500,
+                'message' => 'An error occurred while processing your request.'
+            ], 500);
+        }
+    }
+
 
 
     // Transfer to username
@@ -366,7 +461,6 @@ class TransferController extends Controller
 
 
     }
-
 
 
     // Fetch Paginated Transaction History
