@@ -4,7 +4,6 @@ use App\Http\Controllers\AdminController;
 use App\Http\Controllers\ServicesController;
 use App\Http\Controllers\TransferController;
 use App\Http\Controllers\UsersController;
-use App\Http\Middleware\EnsureTokenIsValid;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -60,7 +59,6 @@ Route::post('/request_otp_password_reset', [UsersController::class, 'requestRese
 // Password Reset
 Route::post('/verify_otp_password_reset', [UsersController::class, 'verifyOtpPasswordReset']);
 
-
 // Verify OTP
 Route::post('/verify_otp', function (Request $request) {
 
@@ -104,14 +102,15 @@ Route::post('/verify_otp', function (Request $request) {
     }
 });
 
-
 // Create pin
 Route::post('/create_pin', [UsersController::class, 'createPin']);
-
 
 // Create pin
 Route::post('/verify_pin', [UsersController::class, 'verifyPin']);
 
-
 // Test Push Notification
-Route::get('/test/send_push', [ServicesController::class, 'SendPushNotification']);
+Route::get('/test/send_push', [ServicesController::class, 'SendPushNotificationApi']);
+
+
+// Update Mobile app preferences
+Route::put('/preference/update', [UsersController::class, 'UpdatePreferences']);

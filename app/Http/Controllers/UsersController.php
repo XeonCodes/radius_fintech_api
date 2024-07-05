@@ -54,6 +54,8 @@ class UsersController extends Controller
                 'message' => 'User fetched successfully',
                 'data' => [
                     'first_name' => $user->first_name,
+                    'receive_email' => $user->receive_emails == '1' ? true : false,
+                    'receive_push' => $user->receive_push == '1' ? true : false,
                     'last_name' => $user->last_name,
                     'balance' => $user->balance,
                     'phone_number' => $user->phone_number,
@@ -576,6 +578,56 @@ class UsersController extends Controller
             return response()->json([
                 'status' => 200,
                 'message' => 'Pin verified successfully',
+            ], 200);
+
+        } catch (Exception $e) {
+            Log::error($e->getMessage());
+            // Return Response
+            return response()->json([
+                'status' => $e->getCode(),
+                'message' => $e->getMessage()
+            ], $e->getCode());
+        }
+    }
+
+
+    public function UpdatePreferences(Request $request){
+        try {
+
+            // Validate Request
+            $validate = Validator::make($request->all(), [
+                'type' => 'required|string',
+                'value' => 'required|string',
+                'id' => 'required|exists:users,id',
+            ]);
+
+            // Check Validations
+            if ($validate->fails()) {
+                throw new Exception($validate->errors()->first(), 400);
+            }
+
+            $allowedAttributes = ['receive_emails', 'receive_push']; // Add the attributes you want to allow
+            $attribute = $request->type;
+
+            if (!in_array($attribute, $allowedAttributes)) {
+                throw new Exception("Bad request!", 400);
+            }
+
+            // Check if user exists
+            $user = User::where('id', $request->id)->first();
+            if (!$user) {
+                throw new Exception('Account not found', 404);
+            }
+
+
+
+            $user->update([$request->input('type') => $request->input('value') ]);
+            
+
+            // Return Response
+            return response()->json([
+                'status' => 200,
+                'message' => 'Preference updated successfully',
             ], 200);
 
         } catch (Exception $e) {

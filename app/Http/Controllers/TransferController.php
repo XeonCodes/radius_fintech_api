@@ -418,10 +418,11 @@ class TransferController extends Controller
                 "created_at" => $created_at
             ]);
 
+            DB::commit();
+
             // Send Push to receiver (Receiver)
             $targetUser->receive_push == 1 && $this->Services->SendPushNotification($targetUser->device_id, "Your account have been successfully credited with the sum of NGN" . number_format($request->input("amount"), 2, '.', ''), "Credit Alert");
-
-            DB::commit();
+            
 
             // Return successful response
             return response()->json([
