@@ -6,6 +6,7 @@ use App\Mail\OTPMail;
 use App\Models\AccessTokenModel;
 use App\Models\AdminModel;
 use App\Models\User;
+use App\Models\VirtualAccountsModel;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -18,7 +19,6 @@ use Illuminate\Support\Facades\Validator;
 class UsersController extends Controller
 {
 
-
     /**
      * Get the authenticated user's details
      *
@@ -26,12 +26,16 @@ class UsersController extends Controller
      * @return \Illuminate\Http\JsonResponse
      */
 
-    // Get Controllers
+    // Generate Controllers
     protected $GenerateServices;
 
-    public function __construct(GenerateController $GenerateServices)
+    // Api Services
+    protected $ApiServices;
+
+    public function __construct(GenerateController $GenerateServices, ApiServices $ApiServices)
     {
         $this->GenerateServices = $GenerateServices;
+        $this->ApiServices = $ApiServices;
     }
 
 
@@ -47,6 +51,9 @@ class UsersController extends Controller
             if (!$user->tokenCan('read')) {
                 throw new Exception('Unauthorized', 401);
             }
+
+            // Fetch wallets
+            $getWallets = VirtualAccountsModel::where('user_id', $user->id)->get();
 
             // Return Response
             return response()->json([
@@ -67,6 +74,7 @@ class UsersController extends Controller
                     'created_at' => $user->created_at,
                     'token' => $user->token,
                     'device_id' => $user->device_id,
+                    'wallet' => $getWallets,
                 ]
             ], 200);
 
@@ -85,6 +93,7 @@ class UsersController extends Controller
     // Store Users
     public function store(Request $request)
     {
+
         try {
 
             DB::beginTransaction();
@@ -173,6 +182,7 @@ class UsersController extends Controller
                 'message' => $e->getMessage()
             ], $e->getCode());
         }
+
     }
 
 
@@ -591,6 +601,7 @@ class UsersController extends Controller
     }
 
 
+    // Update User Preferences
     public function UpdatePreferences(Request $request){
         try {
 
@@ -639,6 +650,111 @@ class UsersController extends Controller
             ], $e->getCode());
         }
     }
+
+
+    // Generate Virtual account
+    public function ReserveVirtualAccount (Request $request){
+
+        try {
+
+            // Get the authenticated user
+            $user = $request->user();
+
+            // Check if token can read
+            if (!$user->tokenCan('transact')) {
+                return response()->json([
+                    'status' => 401,
+                    'message' => "Bad request"
+                ], 401);
+            }
+
+            // Validate Request
+            $validate = Validator::make($request->all(), [
+                'tier' => 'required|string'
+            ]);
+
+
+            // Check Validations
+            if ($validate->fails()) {
+                return response()->json([
+                    'status' => 400,
+                    'message' => $validate->errors()->first()
+                ], 400);
+            }
+
+
+            // Generate account reference
+            $txf = $this->GenerateServices->GenerateAccountReference();
+
+            // Generate account
+            if($request->tier === "1"){
+
+                // Check if customer has not generated tier 1 account before.
+                $check = VirtualAccountsModel::where("tier", '1')
+                    ->where("user_id", $user->id)
+                    ->lockForUpdate()->
+                    first();
+
+                if($check){
+                    return response()->json([
+                        'status' => 400,
+                        'message' => "Bad request"
+                    ], 400);
+                }
+
+                $Generate = $this->ApiServices->CreateVirtualAccountFlutterwave($user->id, $user->email, $user->first_name, $user->last_name, $user->phone_number, $txf);
+                // If fails
+                if(!$Generate['status']){
+                    return response()->json([
+                        'status' => 403,
+                        'message' => $Generate['message']
+                    ], 403);
+                }
+
+            }elseif($request->tier === "2"){
+
+                // Check if customer has not generated tier 1 account before.
+                $check = VirtualAccountsModel::where("tier", '2')
+                    ->where("user_id", $user->id)
+                    ->first();
+
+                if($check){
+                    return response()->json([
+                        'status' => 400,
+                        'message' => "Bad request"
+                    ], 400);
+                }
+
+                return response()->json([
+                    'status' => 500,
+                    'message' => "Currently not available."
+                ], 500);
+
+            }else{
+                return response()->json([
+                    'status' => 400,
+                    'message' => "Bad request"
+                ], 400);
+            }
+
+            // Return Response
+            return response()->json([
+                'status' => 200,
+                'message' => 'Account created successfully',
+            ], 200);
+
+        } catch (Exception $th) {
+
+            // Return Response
+            return response()->json([
+                'status' => 500,
+                'message' => "Something went wrong!"
+            ], 500);
+
+        }
+
+    }
+
 
 
 }

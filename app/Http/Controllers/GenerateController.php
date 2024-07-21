@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\NotificationsModel;
 use App\Models\TransactionsModel;
 use App\Models\User;
+use App\Models\VirtualAccountsModel;
 use Illuminate\Http\Request;
 
 class GenerateController extends Controller
@@ -53,6 +54,25 @@ class GenerateController extends Controller
             $p2ptransaction = substr(str_shuffle('ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'), 0, 14);
         } while (TransactionsModel::where('txf', $p2ptransaction)->exists());
         return $p2ptransaction;
+    }
+
+    // Generate P2P transaction ref
+    public function GenerateUtilityReference()
+    {
+        do {
+            $p2ptransaction = substr(str_shuffle('ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'), 0, 15);
+        } while (TransactionsModel::where('txf', $p2ptransaction)->exists());
+        return $p2ptransaction;
+    }
+
+    
+    // Generate Account Reference
+    public function GenerateAccountReference()
+    {
+        do {
+            $ref = substr(str_shuffle('ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'), 0, 15);
+        } while (VirtualAccountsModel::where('account_reference', $ref)->exists());
+        return $ref;
     }
 
 

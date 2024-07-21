@@ -1,9 +1,11 @@
 <?php
 
 use App\Http\Controllers\AdminController;
+use App\Http\Controllers\ApiServices;
 use App\Http\Controllers\ServicesController;
 use App\Http\Controllers\TransferController;
 use App\Http\Controllers\UsersController;
+use App\Http\Controllers\UtilityController;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -35,11 +37,23 @@ Route::middleware(['auth:sanctum'])->group(function () {
     // Transfer Username
     Route::post('/transfer/username', [TransferController::class, "TransferUsername"]);
 
+    // Generate Wallet
+    Route::post('/wallet', [UsersController::class, "ReserveVirtualAccount"]);
+
     // Update Admin Config
     Route::put('/admin', [AdminController::class, "updateAdminConfig"]);
 
     // Suspend Transact Abilities
     Route::put('/admin/user/suspend_transact', [AdminController::class, "SuspendTokenFromTransacting"]);
+
+    /* ==
+        Utilities and
+        bills
+    == */
+
+    Route::get('/utility/dataplan', [UtilityController::class, "GetDataPlans"]);
+    Route::post('/utility/airtime', [UtilityController::class, "BuyAirtime"]);
+
 
 });
 
@@ -105,12 +119,17 @@ Route::post('/verify_otp', function (Request $request) {
 // Create pin
 Route::post('/create_pin', [UsersController::class, 'createPin']);
 
-// Create pin
+// Verify pin
 Route::post('/verify_pin', [UsersController::class, 'verifyPin']);
 
 // Test Push Notification
 Route::get('/test/send_push', [ServicesController::class, 'SendPushNotificationApi']);
 
-
 // Update Mobile app preferences
 Route::put('/preference/update', [UsersController::class, 'UpdatePreferences']);
+
+// Flw Hook
+Route::post('/hook/flw', [ApiServices::class, 'FlwHook']);
+
+// Clubkon Callback
+Route::post('/callback/clubkon', [ApiServices::class, 'ClubKon']);

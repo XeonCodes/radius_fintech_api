@@ -42,8 +42,9 @@ class TransferController extends Controller
     ==*/
 
     // Resolve Username
-    public function GetUsername(Request $request)
-    {
+    public function GetUsername(Request $request){
+
+        
         // Validate input
         $validator = Validator::make($request->all(), [
             'username' => 'required|max:10|min:4|string|regex:/^[a-zA-Z0-9]+$/',
